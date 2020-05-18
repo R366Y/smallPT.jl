@@ -1,1 +1,1 @@
-# smallPT
+# smallPT.jl

@@ -48,13 +48,15 @@ function intersect(s::Sphere, r::Ray)
     t2 = b + det
     if t > epsi 
         return t1
-    else if t2 > epsi 
+    elseif t2 > epsi 
         return t2
+    end
     return 0
 end
 
 spheres = Sphere[
-    Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF)
+    Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF), # Left
+    Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF) # Right
 ]
 
 end 
