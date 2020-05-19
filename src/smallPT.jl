@@ -1,8 +1,9 @@
 module smallPT
 import Base: +, -, *, % 
 
-M_PI = 3.1415926535
-M_1_PI = 1.0 / M_PI
+const M_PI = 3.1415926535
+const M_1_PI = 1.0 / M_PI
+const inf = 1e20
 @enum Refl_t DIFF SPEC REFR
 
 struct Vec
@@ -36,27 +37,67 @@ end
 
 function intersect(s::Sphere, r::Ray)
     op = s.p - r.o
-    t = epsi = 1e-04
+    epsi = 1e-04
     b = dot(op, r.d)
     det = b * b - dot(op, op) + s.rad * s.rad
-    if det < 0
-        return 0.
+    if det < 0.
+        return inf
     else
         det = sqrt(det)
     end
     t1 = b - det
     t2 = b + det
-    if t > epsi 
+    if t1 > epsi 
         return t1
     elseif t2 > epsi 
         return t2
     end
-    return 0
+    return inf
 end
 
 spheres = Sphere[
-    Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF), # Left
-    Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF) # Right
+    Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF),    # Left
+    Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF),  # Right
+    Sphere(1e5, Vec(50., 40.8, 1e5), Vec(), Vec(.75, .75, .75), DIFF),       # Back
+    Sphere(1e5, Vec(50., 40.8, -1e5+170), Vec(), Vec(), DIFF),               # Front
+    Sphere(1e5, Vec(50., 1e5, 81.6), Vec(), Vec(.75, .75, .75), DIFF),       # Bottom
+    Sphere(1e5, Vec(50., -1e5+81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF), # Top
+    Sphere(16.5, Vec(27., 16.5, 47.), Vec(), Vec(1., 1., 1.) *.999, SPEC),   # Mirror
+    Sphere(16.5, Vec(73., 16.5, 78.), Vec(), Vec(1., 1., 1.)*.999, REFR),    # Glass
+    Sphere(1.5, Vec(50., 81.6-16.5, 81.6), Vec(4.,4.,4.)*100, Vec(), DIFF)   # Lite
 ]
+
+# Converts floats to integers to be saved in PPM file
+@inline toInt(x::Float64) = return floor(Int, clip(x)^(1. / 2.2) * 255 + .5)
+
+const num_spheres = length(spheres)
+
+function intersect(r::Ray)
+    t = 1e20
+    id = nothing
+    for sphere in spheres
+        d = intersect(sphere, r)
+        if d < t 
+            t = d
+            id = sphere
+        end
+    end
+    return id, t
+end
+
+function main()
+    w = 512
+    h = 385
+    samps = 64
+    cam = Ray(Vec(50., 52., 295.6), norm(Vec(0., -0.042612, -1.))) # camera position, direction
+    fov = .5135 # Field of view angle
+    cx = Vec(w * fov/h, 0., 0.) # Horizontal (x) camera direction increment
+    cy = norm(cx % cam.d) * fov # Vector up for the camera , y direction increment
+    c = Array{Vec}(undef, w * h) # The image
+    for i = 1:length(c)
+        c[i] = Vec(0., 0., 0.)
+    end
+
+end
 
 end 
