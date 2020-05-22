@@ -14,13 +14,15 @@ struct Vec
     Vec(x = 0., y = 0. , z = 0.) = new(x, y, z)
 end
 
+# vector operations 
+
 +(a::Vec, b::Vec) = return Vec(a.x + b.x, a.y + b.y, a.z + b.z)
 -(a::Vec, b::Vec) = return Vec(a.x - b.x, a.y - b.y, a.z - b.z)
 *(a::Vec, b) =  return Vec(a.x * b, a.y * b, a.z * b)
 mult(a::Vec, b::Vec) = return Vec(a.x * b.x, a.y * b.y, a.z * b.z)
 norm(a::Vec) = return a * (1 / sqrt(a.x^2 + a.y^2 + a.z^2))
-dot(a::Vec, b::Vec) = return a.x * b.x + a.y * b.y + a.z * b.z 
-%(a::Vec, b::Vec) = return Vec(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x)
+dot(a::Vec, b::Vec) = return a.x * b.x + a.y * b.y + a.z * b.z                                      # dot product 
+%(a::Vec, b::Vec) = return Vec(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x) # cross product
 
 struct Ray
     o::Vec
@@ -70,6 +72,8 @@ spheres = Sphere[
 # Converts floats to integers to be saved in PPM file
 @inline toInt(x::Float64) = return floor(Int, clip(x)^(1. / 2.2) * 255 + .5)
 
+@inline clamp(x:Float64) = return clamp(x, 0., 1.)
+
 const num_spheres = length(spheres)
 
 function intersect(r::Ray)
@@ -89,15 +93,40 @@ function main()
     w = 512
     h = 385
     samps = 64
-    cam = Ray(Vec(50., 52., 295.6), norm(Vec(0., -0.042612, -1.))) # camera position, direction
-    fov = .5135 # Field of view angle
-    cx = Vec(w * fov/h, 0., 0.) # Horizontal (x) camera direction increment
-    cy = norm(cx % cam.d) * fov # Vector up for the camera , y direction increment
-    c = Array{Vec}(undef, w * h) # The image
+    cam = Ray(Vec(50., 52., 295.6), norm(Vec(0., -0.042612, -1.)))  # camera position, direction
+    fov = .5135                                                     # Field of view angle
+    cx = Vec(w * fov/h, 0., 0.)                                     # Horizontal (x) camera direction increment
+    cy = norm(cx % cam.d) * fov                                     # Vector up for the camera , y direction increment
+    c = Array{Vec}(undef, w * h)                                    # The image
     for i = 1:length(c)
         c[i] = Vec(0., 0., 0.)
     end
 
+    for y in 1:h                                                    # Loop over image rows
+        print(stderr, "\rRendering ($(samps*4)) $(100. * y/(h-1))") # Print progress
+        for x in 1:w                                                # Loop columns 
+
+            # For each pixel do 2x2 subsamples and "samps" samples per subsample
+            for sy in 1:2
+                i = (h - y) * w + x                                 # Calculate array index for pixel(x,y)
+                for sx in 1:2
+                    r = Vec()
+                    for s in 1:samps
+                        # Tent filter
+                        r1 = 2 * rand()
+                        r2 = 2 * rand()
+                        dx = r1 < 1. ? sqrt(r1) - 1. : 1. - sqrt(2. - r1)
+                        dy = r2 < 1. ? sqrt(r2) - 1. : 1. - sqrt(2. - r2)
+                        # Compute ray direction
+                        d = cx * (((sx-1 + .5 + dx) / 2 + x) / w - .5) +
+                            cy * (((sy-1 + .5 + dy) / 2 + y) / h - .5) + cam.d
+                        
+                    end
+                end
+            end 
+
+        end
+    end
 end
 
 end 
