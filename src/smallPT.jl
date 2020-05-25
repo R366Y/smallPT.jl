@@ -59,33 +59,35 @@ function intersect(s::Sphere, r::Ray)
     else
         det = sqrt(det)
     end
-
-    if b - det > epsi 
-        return b - det
-    elseif b + det > epsi 
-        return b + det
+    t1 = b - det
+    t2 = b + det
+    if  t1 > epsi 
+        return t1
+    elseif t2 > epsi 
+        return t2
     end
     return inf
 end
 
-spheres = Sphere[
-    Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF),    # Left
-    Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF),  # Right
-    Sphere(1e5, Vec(50., 40.8, 1e5), Vec(), Vec(.75, .75, .75), DIFF),       # Back
-    Sphere(1e5, Vec(50., 40.8, -1e5+170), Vec(), Vec(), DIFF),               # Front
-    Sphere(1e5, Vec(50., 1e5, 81.6), Vec(), Vec(.75, .75, .75), DIFF),       # Bottom
-    Sphere(1e5, Vec(50., -1e5+81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF), # Top
-    Sphere(16.5, Vec(27., 16.5, 47.), Vec(), Vec(1., 1., 1.) *.999, SPEC),   # Mirror
-    Sphere(16.5, Vec(73., 16.5, 78.), Vec(), Vec(1., 1., 1.)*.999, REFR),    # Glass
-    Sphere(600, Vec(50., 681.6 - .27, 81.6), Vec(12.,12.,12.), Vec(), DIFF)   # Lite
-]
+
+const left = Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF)       # Left
+const right = Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF)    # Right
+const back =  Sphere(1e5, Vec(50., 40.8, 1e5), Vec(), Vec(.75, .75, .75), DIFF)         # Back
+const front = Sphere(1e5, Vec(50., 40.8, -1e5+170), Vec(), Vec(), DIFF)                 # Front
+const bottom = Sphere(1e5, Vec(50., 1e5, 81.6), Vec(), Vec(.75, .75, .75), DIFF)        # Bottom
+const top = Sphere(1e5, Vec(50., -1e5+81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF)     # Top
+const mirror = Sphere(16.5, Vec(27., 16.5, 47.), Vec(), Vec(1., 1., 1.) *.999, SPEC)    # Mirror
+const glass = Sphere(16.5, Vec(73., 16.5, 78.), Vec(), Vec(1., 1., 1.)*.999, REFR)      # Glass
+const lite = Sphere(600, Vec(50., 681.6 - .27, 81.6), Vec(12.,12.,12.), Vec(), DIFF)    # Lite
+
+const spheres = [left, right, back, front, bottom, top, mirror, glass, lite]
 
 # Converts floats to integers to be saved in PPM file
 cl(x::Float64) = return max(min(x,one(x)),zero(x))
 toInt(x::Float64) = return floor(Int, cl(x)^(1. / 2.2) * 255 + .5)
 
 function intersectSpheres(r::Ray)
-    t = 1e20
+    t = inf
     id = nothing
     for sphere in spheres
         d = intersect(sphere, r)
@@ -156,7 +158,7 @@ function radiance(r::Ray, depth::Int)
             RP = Re / P
             TP = Tr / (1. - P)
 
-            result = Vec(0., 0., 0.)
+            result = ZERO
             if depth > 2
                 if rand() < P
                     result = radiance(reflRay, depth) * RP
@@ -173,8 +175,8 @@ function radiance(r::Ray, depth::Int)
 end
 
 function main()
-    w = 256
-    h = 256
+    w = 1024
+    h = 768
     samps = 16
     cam = Ray(Vec(50., 52., 295.6), norm(Vec(0., -0.042612, -1.)))  # camera position, direction
     fov = .5135                                                     # Field of view angle
