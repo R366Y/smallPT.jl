@@ -1,3 +1,5 @@
+module smallPT
+
 import Base: +, -, *, % 
 import Base.Threads: @threads
 
@@ -38,6 +40,7 @@ struct Sphere
     e::Vec  # emission
     c::Vec  # color
     refl::Int   # reflection type: DIFFuse, SPECular , REFRactive
+    # some precalculated values to speed up intersection computation
     maxRefl::Float64
     sqRad::Float64
     invC::Vec
@@ -189,8 +192,7 @@ function main()
 
     @threads for y in 1:h                                                    # Loop over image rows
         #print(stderr, "\rRendering ($(samps*4)) $(100. * y/(h-1))%") # Print progress
-        for x in 1:w                                                # Loop columns 
-
+        for x in 1:w                                                    # Loop columns 
             # For each pixel do 2x2 subsamples and "samps" samples per subsample
             for sy in 1:2
                 i = (h - y) * w + x                                 # Calculate array index for pixel(x,y)
@@ -207,7 +209,7 @@ function main()
                             cy * (((sy-1 + .5 + dy) / 2 + y) / h - .5) + cam.d
                         r = r + radiance(Ray(cam.o + d * 140., norm(d)), 0) * (1. / samps)
                     end
-                    @inbounds c[i] = c[i] + Vec(cl(r.x), cl(r.y), cl(r.z)) * .25
+                    @inbounds c[i] += Vec(cl(r.x), cl(r.y), cl(r.z)) * .25
                 end
             end 
 
@@ -227,5 +229,4 @@ function main()
     end
 end
 
-
-#@time main()
+end
