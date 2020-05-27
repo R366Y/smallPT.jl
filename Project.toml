@@ -3,6 +3,9 @@ uuid = "d261bd28-ce29-406d-baa4-a28cd932f6a9"
 authors = ["R366y <nicomn@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+ThreadPools = "b189fb0b-2eb5-4ed4-bc0c-d34c51242431"
+
 [compat]
 julia = "1"
 

@@ -2,6 +2,7 @@ module smallPT
 
 import Base: +, -, *, % 
 import Base.Threads: @threads
+import ThreadPools: @qthreads
 
 const inf = 1e20
 const (DIFF, SPEC, REFR) = (1, 2, 3)
@@ -73,17 +74,78 @@ function intersect(s::Sphere, r::Ray)
 end
 
 
-const left = Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF)       # Left
-const right = Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF)    # Right
-const back =  Sphere(1e5, Vec(50., 40.8, 1e5), Vec(), Vec(.75, .75, .75), DIFF)         # Back
-const front = Sphere(1e5, Vec(50., 40.8, -1e5+170), Vec(), Vec(), DIFF)                 # Front
-const bottom = Sphere(1e5, Vec(50., 1e5, 81.6), Vec(), Vec(.75, .75, .75), DIFF)        # Bottom
-const top = Sphere(1e5, Vec(50., -1e5+81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF)     # Top
-const mirror = Sphere(16.5, Vec(27., 16.5, 47.), Vec(), Vec(1., 1., 1.) *.999, SPEC)    # Mirror
-const glass = Sphere(16.5, Vec(73., 16.5, 78.), Vec(), Vec(1., 1., 1.)*.999, REFR)      # Glass
-const lite = Sphere(600, Vec(50., 681.6 - .27, 81.6), Vec(12.,12.,12.), Vec(), DIFF)    # Lite
+function cornell_box()
 
-const spheres = [left, right, back, front, bottom, top, mirror, glass, lite]
+    return [Sphere(1e5, Vec(1e5+1, 40.8, 81.6), Vec(), Vec(.75, .25, .25), DIFF),      # Left
+            Sphere(1e5, Vec(-1e5+99, 40.8, 81.6), Vec(), Vec(.25, .25, .75), DIFF),    # Right
+            Sphere(1e5, Vec(50., 40.8, 1e5), Vec(), Vec(.75, .75, .75), DIFF),         # Back
+            Sphere(1e5, Vec(50., 40.8, -1e5+170), Vec(), Vec(), DIFF),                 # Front
+            Sphere(1e5, Vec(50., 1e5, 81.6), Vec(), Vec(.75, .75, .75), DIFF),         # Bottom
+            Sphere(1e5, Vec(50., -1e5+81.6, 81.6), Vec(), Vec(.75, .75, .75), DIFF),   # Top
+            Sphere(16.5, Vec(27., 16.5, 47.), Vec(), Vec(1., 1., 1.) *.999, SPEC),     # Mirror
+            Sphere(16.5, Vec(73., 16.5, 78.), Vec(), Vec(1., 1., 1.)*.999, REFR),      # Glass
+            Sphere(600, Vec(50., 681.6 - .27, 81.6), Vec(12.,12.,12.), Vec(), DIFF)    # Lite
+    ]
+end
+
+function sky_scene()
+    Cen = Vec(50.,40.8,-860.);
+    return [
+        Sphere(1600., Vec(1.,0.,2.)* 3000. , Vec(1.,.9,.8)*1.2e1*1.56*2., Vec(), DIFF), # sun
+        Sphere(1560., Vec(1.,0.,2.)*3500.,Vec(1.,.5,.05)*4.8e1*1.56*2., Vec(),  DIFF), # horizon sun2
+        #Sphere(10000,Cen+Vec(0,0,-200), Vec(0.0627, 0.188, 0.569)*6e-2*8., Vec(.7,.7,1)*.25,  DIFF), # sky
+        Sphere(10000.,Cen+Vec(0.,0.,-200.), Vec(0.00063842, 0.02001478, 0.28923243)*6e-2*8., Vec(.7,.7,1.)*.25,  DIFF), # sky
+
+        Sphere(100000., Vec(50., -100000., 0.),  Vec(),Vec(.3,.3,.3),DIFF), # grnd
+        Sphere(110000., Vec(50., -110048.5, 0.),  Vec(.9,.5,.05)*4.,Vec(),DIFF),# horizon brightener
+        Sphere(4e4, Vec(50., -4e4-30, -3000.),  Vec(),Vec(.2,.2,.2),DIFF),# mountains
+        #Sphere(3.99e4, Vec(50., -3.99e4+20.045, -3000.),  Vec(),Vec(.7,.7,.7),DIFF),# mountains snow
+
+        Sphere(26.5,Vec(22.,26.5,42.),   Vec(),Vec(1.,1.,1.)*.596, SPEC), # white Mirr
+        Sphere(13.,Vec(75.,13.,82.),   Vec(),Vec(.96,.96,.96)*.96, REFR),# Glas
+        Sphere(22.,Vec(87.,22.,24.),   Vec(),Vec(.6,.6,.6)*.696, REFR)    # Glas2
+    ]
+end
+
+function vista()
+    Cen = Vec(50.,-20.,-860.);
+    return [
+        Sphere(8000., Cen+Vec(0.,-8000.,-900.),Vec(1.,.4,.1)*5e-1, Vec(),  DIFF), # sun
+        Sphere(1e4,  Cen+Vec(), Vec(0.631, 0.753, 1.00)*3e-1, Vec(1.,1.,1.)*.5,  DIFF), # sky
+
+        Sphere(150.,  Cen+Vec(-350.,0., -100.),Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+        Sphere(200.,  Cen+Vec(-210.,0.,-100.), Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+        Sphere(145.,  Cen+Vec(-210.,85.,-100.),Vec(),  Vec(1.,1.,1.)*.8,  DIFF),    # snow
+        Sphere(150.,  Cen+Vec(-50.,0.,-100.),  Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+        Sphere(150.,  Cen+Vec(100.,0.,-100.),  Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+        Sphere(125.,  Cen+Vec(250.,0.,-100.),  Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+        Sphere(150.,  Cen+Vec(375.,0.,-100.),  Vec(),  Vec(1.,1.,1.)*.3,  DIFF),    # mnt
+
+        Sphere(2500., Cen+Vec(0.,-2400.,-500.),Vec(),  Vec(1.,1.,1.)*.1,  DIFF),    # mnt base
+
+        Sphere(8000., Cen+Vec(0.,-8000.,200.), Vec(),  Vec(.2,.2,1),    REFR),      # water
+        Sphere(8000., Cen+Vec(0.,-8000.,1100.),Vec(),  Vec(0.,.3,0.),     DIFF),    # grass
+        Sphere(8.   , Cen+Vec(-75., -5., 850.),Vec(),  Vec(0.,.3,0.),     DIFF),    # bush
+        Sphere(30.,   Cen+Vec(0.,   23., 825.),Vec(),  Vec(1.,1.,1.)*.996, REFR),   # ball
+
+        Sphere(30.,  Cen+Vec(200.,280.,-400.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),   # clouds
+        Sphere(37.,  Cen+Vec(237.,280.,-400.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),   # clouds
+        Sphere(28.,  Cen+Vec(267.,280.,-400.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),   # clouds
+
+        Sphere(40.,  Cen+Vec(150.,280.,-1000.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),  # clouds
+        Sphere(37.,  Cen+Vec(187.,280.,-1000.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),  # clouds
+
+        Sphere(40.,  Cen+Vec(600.,280.,-1100.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),  # clouds
+        Sphere(37.,  Cen+Vec(637.,280.,-1100.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),  # clouds
+
+        Sphere(37.,  Cen+Vec(-800.,280.,-1400.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF), # clouds
+        Sphere(37.,  Cen+Vec(0.,280.,-1600.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),    # clouds
+        Sphere(37.,  Cen+Vec(537.,280.,-1800.),  Vec(),  Vec(1.,1.,1.)*.8,  DIFF),  # clouds
+    ]
+end
+
+
+const spheres = cornell_box()
 
 # Converts floats to integers to be saved in PPM file
 cl(x::Float64) = return max(min(x,one(x)),zero(x))
@@ -180,7 +242,7 @@ end
 function main()
     w = 1024
     h = 768
-    samps = 16
+    samps = 64
     cam = Ray(Vec(50., 52., 295.6), norm(Vec(0., -0.042612, -1.)))  # camera position, direction
     fov = .5135                                                     # Field of view angle
     cx = Vec(w * fov/h, 0., 0.)                                     # Horizontal (x) camera direction increment
@@ -190,12 +252,15 @@ function main()
         c[i] = Vec(0., 0., 0.)
     end
 
-    @threads for y in 1:h                                                    # Loop over image rows
-        #print(stderr, "\rRendering ($(samps*4)) $(100. * y/(h-1))%") # Print progress
+    @qthreads for y in 1:h  # Loop over image rows
+#=         if Threads.threadid() == 1                                             
+            percent = round(100 * y/(h-1), digits=1)
+            print(stderr, "\rRendering ($(samps*4)) $(percent)%")   # Print progress
+        end =#
         for x in 1:w                                                    # Loop columns 
             # For each pixel do 2x2 subsamples and "samps" samples per subsample
             for sy in 1:2
-                i = (h - y) * w + x                                 # Calculate array index for pixel(x,y)
+                i = (h - y) * w + x                                     # Calculate array index for pixel(x,y)
                 for sx in 1:2
                     r = Vec()
                     for s in 1:samps
@@ -212,7 +277,6 @@ function main()
                     @inbounds c[i] += Vec(cl(r.x), cl(r.y), cl(r.z)) * .25
                 end
             end 
-
         end
     end
 
